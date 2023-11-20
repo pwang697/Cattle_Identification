@@ -2,6 +2,7 @@
 import torch
 import torch.nn as nn
 import torch.utils.model_zoo as model_zoo
+from timm.models.vision_transformer import VisionTransformer
 
 # 3x3 convolution with padding
 def conv3x3(in_planes, out_planes, stride=1):
@@ -146,5 +147,47 @@ def resnet50(pretrained=False,  num_classes=50, ckpt_path=False, embedding_size 
     if pretrained:
         weights_init = torch.load(ckpt_path)['model_state']
         model.load_state_dict(weights_init)
+
+    return model
+
+
+class ViTEmbeddings(nn.Module):
+    def __init__(self, img_size=224, patch_size=16, num_classes=1000, embedding_size=16):
+        super(ViTEmbeddings, self).__init__()
+        self.model = VisionTransformer(
+            img_size=img_size,
+            patch_size=patch_size,
+            in_chans=3,  # Number of input channels (RGB images)
+            num_classes=num_classes,
+            embed_dim=embedding_size,  # Output embedding size
+            depth=12,  # Number of transformer blocks
+            num_heads=1,  # Number of attention heads
+            mlp_ratio=4.0,  # Ratio of MLP hidden dim to embedding dim
+            qkv_bias=True,  # Use bias in qkv (query, key, value) linear layers
+            drop_rate=0.1,  # Dropout rate
+            attn_drop_rate=0.0,  # Attention dropout rate
+            drop_path_rate=0.1,  # Stochastic depth rate
+            norm_layer=nn.LayerNorm,  # Normalization layer
+        )
+
+        # Additional layer for embedding
+        self.fc_embedding = nn.Linear(self.model.num_classes, embedding_size)
+
+    def forward(self, x):
+        x = self.model(x)
+        # x = x['embedding']  # Extract the 'embedding' tensor from the output dictionary
+        x_embedding = self.fc_embedding(x)
+        return x_embedding
+
+# Constructs a ViT model for inferring embeddings
+def createViTModel(pretrained=False, num_classes=1000, ckpt_path=False, embedding_size=16, **kwargs):
+    # Define the model
+    model = ViTEmbeddings(embedding_size=embedding_size, num_classes=num_classes, **kwargs)
+
+    # Load pre-trained weights if specified
+    if pretrained:
+        # Load weights using your preferred method, for example:
+        # model.load_state_dict(torch.load(ckpt_path))
+        pass
 
     return model

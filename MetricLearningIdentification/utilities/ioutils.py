@@ -49,7 +49,7 @@ def loadResizeImage(img_path, size):
     new_size = tuple([int(x*ratio) for x in old_size])
 
     # Actually resize it
-    img = img.resize(new_size, Image.ANTIALIAS)
+    img = img.resize(new_size, Image.LANCZOS)
 
     # Paste into centre of black padded image
     new_img = Image.new("RGB", (size[0], size[1]))

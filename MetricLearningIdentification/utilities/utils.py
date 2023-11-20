@@ -16,11 +16,17 @@ from utilities.loss import *
 from utilities.mining_utils import *
 from models.TripletResnet import TripletResnet50
 from models.TripletResnetSoftmax import TripletResnet50Softmax
+from models.ViT import TripletViT #ViT, ViTModel, TripletViT, ViTSoftmax
 from datasets.OpenSetCows2020.OpenSetCows2020 import OpenSetCows2020
+from transformers import ViTForImageClassification
+from vit_pytorch import ViT
+from torchvision.models import vit_b_16
 
 """
 File contains a collection of utility functions used for training and evaluation
 """
+
+device = torch.device('mps')
 
 class Utilities:
     # Class constructor
@@ -52,12 +58,14 @@ class Utilities:
             model = TripletResnet50Softmax(pretrained=True, num_classes=dataset.getNumClasses())
         elif args.model == "TripletResnet": 
             model = TripletResnet50(pretrained=True, num_classes=dataset.getNumClasses())
+        elif args.model == "ViT":
+            model = TripletViT(img_size=224, patch_size=16, num_classes=dataset.getNumClasses())
         else:
             print(f"Model choice: \"{args.model}\" not recognised, exiting.")
             sys.exit(1)
 
         # Put the model on the GPU and in training mode
-        model.cuda()
+        model.to(device)
         model.train()
 
         # Setup the triplet selection method
@@ -90,6 +98,7 @@ class Utilities:
             print(f"Loss function choice not recognised, exiting.")
             sys.exit(1)
 
+        loss_fn.to(device)
         # Create our optimiser, if using reciprocal triplet loss, don't have a momentum component
         if "Reciprocal" in args.loss_function:
             optimiser = optim.SGD(model.parameters(), lr=args.learning_rate, weight_decay=args.weight_decay)
@@ -142,7 +151,7 @@ class Utilities:
     # Evaluate the current model state, calls test.py in a subprocess and saves the results to file
     def test(self, step):
         # Construct subprocess call string
-        run_str  = f"python test.py"
+        run_str  = f"python3 test.py"
         run_str += f" --model_path={self.checkpoint_path}"  # Saved model weights to use
         run_str += f" --dataset={self.args.dataset}"        # Which dataset to use
         run_str += f" --batch_size={self.args.batch_size}"  # Batch size to use when inferring

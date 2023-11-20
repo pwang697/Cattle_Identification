@@ -13,6 +13,8 @@ from utilities.loss import *
 from utilities.mining_utils import *
 from utilities.utils import Utilities
 
+device = torch.device('mps')
+
 """
 File is for training the network via cross fold validation
 """
@@ -52,9 +54,12 @@ def trainFold(args):
 		# Mini-batch training loop over the training set
 		for images, images_pos, images_neg, labels, labels_neg in data_loader:
 			# Put the images on the GPU and express them as PyTorch variables
-			images = Variable(images.cuda())
-			images_pos = Variable(images_pos.cuda())
-			images_neg = Variable(images_neg.cuda())
+			images = Variable(images.to(device))
+			images_pos = Variable(images_pos.to(device))
+			images_neg = Variable(images_neg.to(device))
+
+			labels.to(device)
+			labels_neg.to(device)
 		   
 			# Zero the optimiser
 			optimiser.zero_grad()
@@ -64,12 +69,14 @@ def trainFold(args):
 				embed_anch, embed_pos, embed_neg, preds = model(images, images_pos, images_neg)
 			else:
 				embed_anch, embed_pos, embed_neg = model(images, images_pos, images_neg)
+				# embed_anch = model(images) #new
 
 			# Calculate the loss on this minibatch
 			if "Softmax" in args.loss_function:
 				loss, triplet_loss, loss_softmax = loss_fn(embed_anch, embed_pos, embed_neg, preds, labels, labels_neg)
 			else:
 				loss = loss_fn(embed_anch, embed_pos, embed_neg, labels)
+				# loss = nn.CrossEntropyLoss() #new
 
 			# Backprop and optimise
 			loss.backward()
@@ -108,7 +115,6 @@ if __name__ == '__main__':
 						help="Path to folder to store results in")
 	parser.add_argument('--folds_file', type=str, default="", required=True,
 						help="Path to json file containing folds")
-
 	# Core settings
 	parser.add_argument('--num_folds', type=int, default=1,
 						help="Number of folds to cross validate across")
@@ -133,7 +139,7 @@ if __name__ == '__main__':
 						help='Height of the input image')
 	parser.add_argument('--embedding_size', nargs='?', type=int, default=128, 
 						help='dense layer size for inference')
-	parser.add_argument('--num_epochs', nargs='?', type=int, default=500, 
+	parser.add_argument('--num_epochs', nargs='?', type=int, default=40, 
 						help='# of the epochs to train for')
 	parser.add_argument('--batch_size', nargs='?', type=int, default=16,
 						help='Batch Size')

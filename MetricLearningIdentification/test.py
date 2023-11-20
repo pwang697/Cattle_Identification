@@ -14,10 +14,13 @@ from torch.autograd import Variable
 
 # Local libraries
 from utilities.utils import Utilities
-from models.embeddings import resnet50
+from models.embeddings import resnet50, ViTEmbeddings, createViTModel
 
 # Import our dataset class
 from datasets.OpenSetCows2020.OpenSetCows2020 import OpenSetCows2020
+from models.ViT import TripletViT
+
+device = torch.device('mps')
 
 """
 File for inferring the embeddings of the test portion of a selected database and
@@ -70,10 +73,12 @@ def inferEmbeddings(args, dataset, split):
 	data_loader = data.DataLoader(dataset, batch_size=args.batch_size, num_workers=6, shuffle=False)
 
 	# Define our embeddings model
-	model = resnet50(pretrained=True, num_classes=dataset.getNumClasses(), ckpt_path=args.model_path, embedding_size=args.embedding_size)
+	# model = resnet50(pretrained=True, num_classes=dataset.getNumClasses(), ckpt_path=args.model_path, embedding_size=args.embedding_size)
+	# model = TripletViT(img_size=224, patch_size=16, num_classes=dataset.getNumClasses()) #new
+	model = createViTModel(pretrained=False, num_classes=dataset.getNumClasses(), embedding_size=args.embedding_size)
 	
 	# Put the model on the GPU and in evaluation mode
-	model.cuda()
+	model.to(device)
 	model.eval()
 
 	# Embeddings/labels to be stored on the testing set
@@ -85,7 +90,7 @@ def inferEmbeddings(args, dataset, split):
 	# Iterate through the testing portion of the dataset and get
 	for images, _, _, labels, _ in tqdm(data_loader, desc=f"Inferring {split} embeddings"):
 		# Put the images on the GPU and express them as PyTorch variables
-		images = Variable(images.cuda())
+		images = Variable(images.to(device))
 
 		# Get the embeddings of this batch of images
 		outputs = model(images)

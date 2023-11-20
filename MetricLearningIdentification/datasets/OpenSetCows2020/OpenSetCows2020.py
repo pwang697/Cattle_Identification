@@ -90,8 +90,8 @@ class OpenSetCows2020(data.Dataset):
 		"""
 
 		# Create dictionaries of categories: filepaths
-		train_files = {os.path.basename(f):allFilesAtDirWithExt(f, ".jpg") for f in self.__train_folders}
-		test_files = {os.path.basename(f):allFilesAtDirWithExt(f, ".jpg") for f in self.__test_folders}
+		train_files = {os.path.basename(f):allFilesAtDirWithExt(f, ".png") for f in self.__train_folders}
+		test_files = {os.path.basename(f):allFilesAtDirWithExt(f, ".png") for f in self.__test_folders}
 
 		# List of categories to be removed
 		remove = []
