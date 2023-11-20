@@ -7,6 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
+device = torch.device('mps')
+
 """
 File contains loss functions selectable during training
 """
@@ -48,7 +50,7 @@ class OnlineTripletLoss(nn.Module):
 
 	def forward(self, anchor_embed, pos_embed, neg_embed, labels):
 		# Combine the embeddings from each network
-		embeddings = torch.cat((anchor_embed, pos_embed, neg_embed), dim=0)
+		embeddings = torch.cat((anchor_embed, pos_embed, neg_embed), dim=0, device=device)
 
 		# Get the (e.g. hardest) triplets in this minibatch
 		triplets, num_triplets = self.triplet_selector.get_triplets(embeddings, labels)
@@ -82,12 +84,12 @@ class OnlineTripletSoftmaxLoss(nn.Module):
 	def forward(self, anchor_embed, pos_embed, neg_embed, preds, labels, labels_neg):
 		# Combine the embeddings from each network
 		embeddings = torch.cat((anchor_embed, pos_embed, neg_embed), dim=0)
-
+		
 		# Define the labels as variables and put on the GPU
 		gpu_labels = labels.view(len(labels))
 		gpu_labels_neg = labels_neg.view(len(labels_neg))
-		gpu_labels = Variable(gpu_labels.cuda())
-		gpu_labels_neg = Variable(gpu_labels_neg.cuda())
+		gpu_labels = Variable(gpu_labels.to(device))
+		gpu_labels_neg = Variable(gpu_labels_neg.to(device))
 
 		# Concatenate labels for softmax/crossentropy targets
 		target = torch.cat((gpu_labels, gpu_labels, gpu_labels_neg), dim=0)
@@ -171,8 +173,8 @@ class OnlineReciprocalSoftmaxLoss(nn.Module):
 		# Define the labels as variables and put on the GPU
 		gpu_labels = labels.view(len(labels))
 		gpu_labels_neg = labels_neg.view(len(labels_neg))
-		gpu_labels = Variable(gpu_labels.cuda())
-		gpu_labels_neg = Variable(gpu_labels_neg.cuda())
+		gpu_labels = Variable(gpu_labels.to(device))
+		gpu_labels_neg = Variable(gpu_labels_neg.to(device))
 
 		# Concatenate labels for softmax/crossentropy targets
 		target = torch.cat((gpu_labels, gpu_labels, gpu_labels_neg), dim=0)
